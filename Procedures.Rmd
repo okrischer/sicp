@@ -1,0 +1,138 @@
+---
+title: Learn Programming with *R*
+author: Oliver Krischer
+date: Oct. 2021
+abstract: |
+  Working through the classical book *Structure and Interpretation of Computer Programs* [^1] using *R*
+
+  [^1]: the classical book: @sicp96
+bibliography: sicp.bib
+lof: yes
+output:
+  pdf_document: 
+    latex_engine: xelatex
+    toc: true
+    toc_depth: 3
+    number_sections: yes
+    fig_caption: yes
+    highlight: pygments
+  documentclass: article
+  classoption: a4paper
+  fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+Sys.setenv(PATH = "/home/oliver/texlive/2020/bin/x86_64-linux:/usr/bin")
+library(microbenchmark)
+```
+
+# Building Abstractions with Procedures
+## The Elements of Programming
+### Procedures as Black-Box Abstractions {#sec:blackbox}
+In this example we are including definitions for subroutines inside the main function, in order to keep the user interface clean.
+We also use *lexical scoping* inside the main function: all references to the input value inside the subroutines (in this case `x`) receive their value directly from the main argument.
+```{r}
+sqrt.heron <- function(x) {
+  sqrt.iter <- function(guess) {
+    if (satisfies(guess)) guess
+    else sqrt.iter(improve(guess))
+  }
+  satisfies <- function(guess) {
+    abs((guess * guess - x)) < 0.001
+  }
+  improve <- function(guess) {
+    (guess + x / guess) / 2
+  }
+  sqrt.iter(1)
+}
+sqrt.heron(2)
+```
+
+## Procedures and the Processes They Generate
+### Linear Recursion and Iteration {#sec:linrec}
+The *factorial function* is defined by the following *recurrence relation*:
+\begin{subequations} \label{eq:factorial}
+  \begin{align}
+    1! &= 1 \label{eq:fact1}
+    \\
+    n! &= n \cdot (n-1)! \label{eq:factn}
+  \end{align}
+\end{subequations}
+A straightforward implementation, resulting in a *recursive process* looks like this:
+```{r}
+fact.rec <- function(n) {
+  if (n == 1) 1
+  else n * fact.rec(n - 1)
+}
+fact.rec(5)
+```
+In contrast, here is a basic implementation possibly leading to an *iterative process*:
+```{r}
+fact.iter <- function(n) {
+  iter <- function(product, counter) {
+    if (counter > n) product
+    else iter(product = counter * product, counter = counter + 1)
+  }
+  iter(1, 1)
+}
+fact.iter(5)
+```
+Observe, that we have a *recursive function definition* in **both cases**, as there is no other way of *looping* in functional programming languages in general.
+But the resulting *computing process* differs in each case:
+
+recursive:
+  ~ The interpreter needs to keep track of the operations to be performed later on. It therefor has to store every frame of execution within the programs \emph{call stack}, which will grow and shrink during execution. This will lead to a space complexity of $\mathcal{O}(n)$.
+
+iterative: 
+  ~ The interpreter keeps track of the process with a fixed number of \emph{state variables}, which get updated during the process. The stack size keeps constant, resulting in a space complexity of $\mathcal{O}(1)$.
+
+Another way of understanding this, is to look at the actual recursive call of the function:
+if there are no additional calculations to be performed (i.e. the resulting value is immediately returned), this would lead to an iterative process, provided the compiler is able to recognize and optimize this kind of *tail recursive* calls.
+
+Unfortunately, the *R* interpreter is not able to detect and to optimize *tail recursion*.
+But, for compensation, *R* includes a native *looping* mechanism, which we can use to implement an iterative solution like this:
+```{r}
+fact.loop <- function(n) {
+  product <- 1
+  for (i in seq_len(n)) {
+    product <- i * product
+  }
+  product
+}
+fact.loop(5)
+```
+Looking at the following benchmark we can see that the *iterative* implementation with *looping* is much faster than the recursive definitions:
+```{r}
+bench <- microbenchmark(fact.rec(100),
+                        fact.iter(100),
+                        fact.loop(100),
+                        factorial(100),
+                        times = 1000L)
+print(bench)
+```
+
+With this knowledge we can now optimize the `sqrt.heron` function from the [last section](#sec:blackbox) to a 'real' iterative solution:
+```{r}
+sqrt.iter <- function(x) {
+  guess <- 1
+  satisfies <- function(g) {
+    abs((g * g - x)) < 0.001
+  }
+  while (!satisfies(guess)) {
+    guess <- (guess + x / guess) / 2
+  }
+  guess
+}
+sqrt.iter(2)
+```
+Check if this optimization worked out:
+```{r, fig.cap="Benchmarking squareroots"}
+bench <- microbenchmark(sqrt.heron(2),
+                        sqrt.iter(2),
+                        sqrt(2),
+                        times = 1000L)
+print(bench)
+```
+
+### Tree Recursion {#sec:treerec}
