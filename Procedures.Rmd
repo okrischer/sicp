@@ -1,24 +1,19 @@
 ---
-title: Learn Programming with *R*
+title: Learn Functional Programming!
 author: Oliver Krischer
 date: Oct. 2021
 abstract: |
-  Working through the classical book *Structure and Interpretation of Computer Programs* [^1] using *R*
+  Working through the classical book *Structure and Interpretation of Computer Programs* [^1] using *R* and *Haskell*.
 
   [^1]: the classical book: @sicp96
 bibliography: sicp.bib
+biblio-style: apalike
 lof: yes
-output:
-  pdf_document: 
-    latex_engine: xelatex
-    toc: true
-    toc_depth: 3
-    number_sections: yes
-    fig_caption: yes
-    highlight: pygments
-  documentclass: article
-  classoption: a4paper
-  fontsize: 12pt
+lot: yes
+output: 
+  bookdown::pdf_document2:
+    includes:
+      in_header: preamble.tex
 ---
 
 ```{r setup, include=FALSE}
@@ -29,20 +24,22 @@ library(microbenchmark)
 
 # Building Abstractions with Procedures
 ## The Elements of Programming
-### Procedures as Black-Box Abstractions {#sec:blackbox}
+### Procedures as Black-Box Abstractions 
+
 In this example we are including definitions for subroutines inside the main function, in order to keep the user interface clean.
-We also use *lexical scoping* inside the main function: all references to the input value inside the subroutines (in this case `x`) receive their value directly from the main argument.
+We also use *lexical scoping*: all references to the input value inside the subroutines (in this case `x`) receive their value directly from the main argument.
+
 ```{r}
 sqrt.heron <- function(x) {
   sqrt.iter <- function(guess) {
     if (satisfies(guess)) guess
     else sqrt.iter(improve(guess))
   }
-  satisfies <- function(guess) {
-    abs((guess * guess - x)) < 0.001
+  satisfies <- function(g) {
+    abs((g * g - x)) < 0.001
   }
-  improve <- function(guess) {
-    (guess + x / guess) / 2
+  improve <- function(g) {
+    (g + x/g) / 2
   }
   sqrt.iter(1)
 }
@@ -50,69 +47,75 @@ sqrt.heron(2)
 ```
 
 ## Procedures and the Processes They Generate
-### Linear Recursion and Iteration {#sec:linrec}
+### Linear Recursion and Iteration
+
 The *factorial function* is defined by the following *recurrence relation*:
-\begin{subequations} \label{eq:factorial}
-  \begin{align}
-    1! &= 1 \label{eq:fact1}
-    \\
-    n! &= n \cdot (n-1)! \label{eq:factn}
-  \end{align}
-\end{subequations}
-A straightforward implementation, resulting in a *recursive process* looks like this:
+\begin{align}
+  \begin{split}
+    1! &= 1 \\ n! &= n \cdot (n-1)!
+  \end{split}
+\end{align}
+A straightforward implementation, resulting in a *recursive process*:
+
 ```{r}
 fact.rec <- function(n) {
   if (n == 1) 1
-  else n * fact.rec(n - 1)
+  else n * fact.rec(n-1)
 }
 fact.rec(5)
 ```
-In contrast, here is a basic implementation possibly leading to an *iterative process*:
+
+In contrast, here is a implementation which should lead to an *iterative process*:
+
 ```{r}
 fact.iter <- function(n) {
   iter <- function(product, counter) {
-    if (counter > n) product
-    else iter(product = counter * product, counter = counter + 1)
+    if (counter == 1) product
+    else iter(counter * product, counter - 1)
   }
-  iter(1, 1)
+  iter(1, n)
 }
 fact.iter(5)
 ```
-Observe, that we have a *recursive function definition* in **both cases**, as there is no other way of *looping* in functional programming languages in general.
+
+Observe, that we have a *recursive function definition* in **both cases**, as this is the standard way of *looping* in functional programming languages.
 But the resulting *computing process* differs in each case:
 
 recursive:
-  ~ The interpreter needs to keep track of the operations to be performed later on. It therefor has to store every frame of execution within the programs \emph{call stack}, which will grow and shrink during execution. This will lead to a space complexity of $\mathcal{O}(n)$.
+  ~ The interpreter needs to keep track of the operations to be performed later on. It therefor has to store every frame of execution within the programs *call stack*, which will grow and shrink during execution. This will lead to a space complexity of $\mathcal{O}(n)$ for this linear process.
 
 iterative: 
-  ~ The interpreter keeps track of the process with a fixed number of \emph{state variables}, which get updated during the process. The stack size keeps constant, resulting in a space complexity of $\mathcal{O}(1)$.
+  ~ The interpreter keeps track of the process with a fixed number of *state variables* (in our case `product` and `counter`), which get updated during the process. The stack size keeps constant, resulting in a space complexity of $\mathcal{O}(1)$.
 
 Another way of understanding this, is to look at the actual recursive call of the function:
 if there are no additional calculations to be performed (i.e. the resulting value is immediately returned), this would lead to an iterative process, provided the compiler is able to recognize and optimize this kind of *tail recursive* calls.
 
 Unfortunately, the *R* interpreter is not able to detect and to optimize *tail recursion*.
-But, for compensation, *R* includes a native *looping* mechanism, which we can use to implement an iterative solution like this:
+For examle, our implementation of `fact.iter` gets not optimized and is even slower then the recursive implementation.
+But, for compensation, *R* includes a native *looping* mechanism, which we can use to implement a *real* iterative solution:
+
 ```{r}
 fact.loop <- function(n) {
   product <- 1
-  for (i in seq_len(n)) {
-    product <- i * product
+  for (counter in seq_len(n)) {
+    product <- counter * product
   }
   product
 }
 fact.loop(5)
 ```
-Looking at the following benchmark we can see that the *iterative* implementation with *looping* is much faster than the recursive definitions:
+
+Looking at the following benchmark we can see that the iterative implementation with *looping* is much more efficient than the recursive definitions:
+
 ```{r}
 bench <- microbenchmark(fact.rec(100),
                         fact.iter(100),
-                        fact.loop(100),
-                        factorial(100),
-                        times = 1000L)
+                        fact.loop(100))
 print(bench)
 ```
 
-With this knowledge we can now optimize the `sqrt.heron` function from the [last section](#sec:blackbox) to a 'real' iterative solution:
+With this knowledge we can now optimize the `sqrt.heron` function from section *[Procedures as Black-Box Abstractions][Procedures as Black-Box Abstractions]* to a *real* iterative solution:
+
 ```{r}
 sqrt.iter <- function(x) {
   guess <- 1
@@ -126,13 +129,143 @@ sqrt.iter <- function(x) {
 }
 sqrt.iter(2)
 ```
-Check if this optimization worked out:
-```{r, fig.cap="Benchmarking squareroots"}
-bench <- microbenchmark(sqrt.heron(2),
-                        sqrt.iter(2),
-                        sqrt(2),
-                        times = 1000L)
+
+### Tree Recursion
+
+Let's have a look at another standard example for recurrence relations, the *Fibonacci numbers*:
+\begin{align}
+  \begin{split}
+    Fib_0 &= 0 \\ Fib_1 &= 1 \\ Fib_n &= Fib_{n-1} + Fib_{n-2}
+  \end{split}
+\end{align}
+This translates directly into recursive code:
+
+```{r}
+fib.rec <- function(n) {
+  if (n < 2) n
+  else fib.rec(n - 1) + fib.rec(n - 2)
+}
+fib.rec(10)
+```
+
+The same with *Haskell*:
+
+```{haskell, eval=FALSE}
+fibRec :: Integer -> Integer
+fibRec n | n < 2 = n
+         | otherwise = fibRec (n-1) + fibRec (n-2)
+```
+
+With that recursion expression we are calling the function twice for every $n>1$, which leads to an exponential growth of calculation steps.
+The resulting process looks like a tree, in which the branches split into two at each level.
+In general, the number of steps required by a *tree-recursive* process will be proportional to the number of nodes in the tree, while the space required will be proportional to the maximum depth of the tree.
+Thus we have a runtime of $\mathcal{O}(2^n)$ and memory consumption of $\mathcal{O}(n)$.
+
+Following our procedure from section *[Linear Recursion and Iteration][Linear Recursion and Iteration]* we will now create an iterative function:
+
+```{r}
+fib.iter <- function(n) {
+  iter <- function(a, b, c) {
+    if (c == 1) b
+    else iter(b, a + b, c - 1)
+  }
+  iter(0, 1, n)
+}
+fib.iter(10)
+```
+
+This time the iterative version of our function is about ten times faster than the recursive one, since we have reduced the recursion from a tree process to a linear one:
+
+```{r}
+bench <- microbenchmark(fib.rec(10),
+                        fib.iter(10))
 print(bench)
 ```
 
-### Tree Recursion {#sec:treerec}
+For comparison, here is a second iterative solution with explicit *looping*:
+
+```{r}
+fib.loop <- function(n) {
+  a <- 0
+  b <- 1
+  c <- 0
+  for (i in seq_len(n)) {
+    c <- a + b
+    a <- b
+    b <- c
+  }
+  a
+}
+fib.loop(10)
+```
+
+And finally, here's onother one, making use of *memoization* and encapsulating the function into it's own local environment:
+
+```{r}
+fib.memo <- local({
+  memo <- c(1, 1, rep(NA, 1000))
+  f <- function(n) {
+    if (n == 0) return(0)
+    if (!is.na(memo[n])) return(memo[n])
+    res <- f(n - 2) + f(n - 1)
+    memo[n] <<- res
+    res
+  }
+})
+fib.memo(10)
+```
+
+Benchmarking our three optimized solutions for $n=100$:
+
+```{r, fig.cap="Benchmarking Fibonacci numbers"}
+bench <- microbenchmark(fib.iter(100),
+                        fib.loop(100),
+                        fib.memo(100))
+print(bench)
+```
+
+The version with explicit looping is much more efficient than the native iterative version (which still creates a recursive process).
+The version with memoization is even more efficient than that, although still working with *tree recursion*.
+
+There are no loops in *Haskell*, since it is a *pure* functional language, thus we have to stick to the native iterative solution:
+
+```{haskell, eval=FALSE}
+fibIter :: Integer -> Integer 
+fibIter n = fst (iter n)
+  where 
+    iter 0 = (0,1)
+    iter n = (b, a+b)
+      where (a,b) = iter (n-1)
+```
+
+Fortunately, in contrast to *R*, the *Haskell* compiler is able to detect and optimize *tail recursion*, so that this impementation will be quite efficient.
+Additionally, we could make use of *monads*, Haskells way of encapsulating imperative code and hiding it from the rest of the *immutable* functional world: 
+
+```{haskell, eval=FALSE}
+fibImp :: Int -> Integer 
+fibImp n = runST (fibMut n)
+
+fibMut :: Int -> ST s Integer
+fibMut n = do
+  a <- newSTRef 0
+  b <- newSTRef 1
+  replicateM_ n (do 
+    x <- readSTRef a
+    y <- readSTRef b
+    writeSTRef a y
+    writeSTRef b $! (x+y))
+  readSTRef a
+```
+
+We will revisit monads in a later chapter and discuss them in more detail.
+For now, be aware that if you want to use the code above, you would have to import some extra modules from Haskells library like so:
+
+```{haskell, eval=FALSE}
+import Control.Monad ( replicateM_ )
+import Control.Monad.ST ( runST, ST )
+import Data.STRef ( newSTRef, readSTRef, writeSTRef )
+```
+
+#### Example: counting change
+
+# References
