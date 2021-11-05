@@ -9,8 +9,8 @@ dist-newstyle/
 *.lof
 *.log
 *.png
+*.pdf
 *.ptb
 *.xml
 *.gz
-*.tex
 *.toc

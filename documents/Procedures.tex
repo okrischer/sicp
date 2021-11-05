@@ -1,0 +1,497 @@
+\documentclass{scrartcl}
+\usepackage{mathtools}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\newtheorem{defn}{Definition}[section]
+\newtheorem{prop}[defn]{Proposition}
+\newtheorem{lemma}[defn]{Lemma}
+\newtheorem{theo}[defn]{Theorem}
+\newtheorem{exam}[defn]{Example}
+\newtheorem{impl}[defn]{Code-Example}
+\newtheorem{exer}[defn]{Exercise}
+\usepackage[backend=biber,style=verbose-trad1]{biblatex}
+\addbibresource{sicp.bib}
+\numberwithin{equation}{section}
+%% ODER: format ==         = "\mathrel{==}"
+%% ODER: format /=         = "\neq "
+%
+%
+\makeatletter
+\@ifundefined{lhs2tex.lhs2tex.sty.read}%
+  {\@namedef{lhs2tex.lhs2tex.sty.read}{}%
+   \newcommand\SkipToFmtEnd{}%
+   \newcommand\EndFmtInput{}%
+   \long\def\SkipToFmtEnd#1\EndFmtInput{}%
+  }\SkipToFmtEnd
+
+\newcommand\ReadOnlyOnce[1]{\@ifundefined{#1}{\@namedef{#1}{}}\SkipToFmtEnd}
+\usepackage{amstext}
+\usepackage{amssymb}
+\usepackage{stmaryrd}
+\DeclareFontFamily{OT1}{cmtex}{}
+\DeclareFontShape{OT1}{cmtex}{m}{n}
+  {<5><6><7><8>cmtex8
+   <9>cmtex9
+   <10><10.95><12><14.4><17.28><20.74><24.88>cmtex10}{}
+\DeclareFontShape{OT1}{cmtex}{m}{it}
+  {<-> ssub * cmtt/m/it}{}
+\newcommand{\texfamily}{\fontfamily{cmtex}\selectfont}
+\DeclareFontShape{OT1}{cmtt}{bx}{n}
+  {<5><6><7><8>cmtt8
+   <9>cmbtt9
+   <10><10.95><12><14.4><17.28><20.74><24.88>cmbtt10}{}
+\DeclareFontShape{OT1}{cmtex}{bx}{n}
+  {<-> ssub * cmtt/bx/n}{}
+\newcommand{\tex}[1]{\text{\texfamily#1}}	% NEU
+
+\newcommand{\Sp}{\hskip.33334em\relax}
+
+
+\newcommand{\Conid}[1]{\mathit{#1}}
+\newcommand{\Varid}[1]{\mathit{#1}}
+\newcommand{\anonymous}{\kern0.06em \vbox{\hrule\@width.5em}}
+\newcommand{\plus}{\mathbin{+\!\!\!+}}
+\newcommand{\bind}{\mathbin{>\!\!\!>\mkern-6.7mu=}}
+\newcommand{\rbind}{\mathbin{=\mkern-6.7mu<\!\!\!<}}% suggested by Neil Mitchell
+\newcommand{\sequ}{\mathbin{>\!\!\!>}}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\geq}{\geqslant}
+\usepackage{polytable}
+
+%mathindent has to be defined
+\@ifundefined{mathindent}%
+  {\newdimen\mathindent\mathindent\leftmargini}%
+  {}%
+
+\def\resethooks{%
+  \global\let\SaveRestoreHook\empty
+  \global\let\ColumnHook\empty}
+\newcommand*{\savecolumns}[1][default]%
+  {\g@addto@macro\SaveRestoreHook{\savecolumns[#1]}}
+\newcommand*{\restorecolumns}[1][default]%
+  {\g@addto@macro\SaveRestoreHook{\restorecolumns[#1]}}
+\newcommand*{\aligncolumn}[2]%
+  {\g@addto@macro\ColumnHook{\column{#1}{#2}}}
+
+\resethooks
+
+\newcommand{\onelinecommentchars}{\quad-{}- }
+\newcommand{\commentbeginchars}{\enskip\{-}
+\newcommand{\commentendchars}{-\}\enskip}
+
+\newcommand{\visiblecomments}{%
+  \let\onelinecomment=\onelinecommentchars
+  \let\commentbegin=\commentbeginchars
+  \let\commentend=\commentendchars}
+
+\newcommand{\invisiblecomments}{%
+  \let\onelinecomment=\empty
+  \let\commentbegin=\empty
+  \let\commentend=\empty}
+
+\visiblecomments
+
+\newlength{\blanklineskip}
+\setlength{\blanklineskip}{0.66084ex}
+
+\newcommand{\hsindent}[1]{\quad}% default is fixed indentation
+\let\hspre\empty
+\let\hspost\empty
+\newcommand{\NB}{\textbf{NB}}
+\newcommand{\Todo}[1]{$\langle$\textbf{To do:}~#1$\rangle$}
+
+\EndFmtInput
+\makeatother
+%
+%
+%
+%
+%
+%
+% This package provides two environments suitable to take the place
+% of hscode, called "plainhscode" and "arrayhscode". 
+%
+% The plain environment surrounds each code block by vertical space,
+% and it uses \abovedisplayskip and \belowdisplayskip to get spacing
+% similar to formulas. Note that if these dimensions are changed,
+% the spacing around displayed math formulas changes as well.
+% All code is indented using \leftskip.
+%
+% Changed 19.08.2004 to reflect changes in colorcode. Should work with
+% CodeGroup.sty.
+%
+\ReadOnlyOnce{polycode.fmt}%
+\makeatletter
+
+\newcommand{\hsnewpar}[1]%
+  {{\parskip=0pt\parindent=0pt\par\vskip #1\noindent}}
+
+% can be used, for instance, to redefine the code size, by setting the
+% command to \small or something alike
+\newcommand{\hscodestyle}{}
+
+% The command \sethscode can be used to switch the code formatting
+% behaviour by mapping the hscode environment in the subst directive
+% to a new LaTeX environment.
+
+\newcommand{\sethscode}[1]%
+  {\expandafter\let\expandafter\hscode\csname #1\endcsname
+   \expandafter\let\expandafter\endhscode\csname end#1\endcsname}
+
+% "compatibility" mode restores the non-polycode.fmt layout.
+
+\newenvironment{compathscode}%
+  {\par\noindent
+   \advance\leftskip\mathindent
+   \hscodestyle
+   \let\\=\@normalcr
+   \let\hspre\(\let\hspost\)%
+   \pboxed}%
+  {\endpboxed\)%
+   \par\noindent
+   \ignorespacesafterend}
+
+\newcommand{\compaths}{\sethscode{compathscode}}
+
+% "plain" mode is the proposed default.
+% It should now work with \centering.
+% This required some changes. The old version
+% is still available for reference as oldplainhscode.
+
+\newenvironment{plainhscode}%
+  {\hsnewpar\abovedisplayskip
+   \advance\leftskip\mathindent
+   \hscodestyle
+   \let\hspre\(\let\hspost\)%
+   \pboxed}%
+  {\endpboxed%
+   \hsnewpar\belowdisplayskip
+   \ignorespacesafterend}
+
+\newenvironment{oldplainhscode}%
+  {\hsnewpar\abovedisplayskip
+   \advance\leftskip\mathindent
+   \hscodestyle
+   \let\\=\@normalcr
+   \(\pboxed}%
+  {\endpboxed\)%
+   \hsnewpar\belowdisplayskip
+   \ignorespacesafterend}
+
+% Here, we make plainhscode the default environment.
+
+\newcommand{\plainhs}{\sethscode{plainhscode}}
+\newcommand{\oldplainhs}{\sethscode{oldplainhscode}}
+\plainhs
+
+% The arrayhscode is like plain, but makes use of polytable's
+% parray environment which disallows page breaks in code blocks.
+
+\newenvironment{arrayhscode}%
+  {\hsnewpar\abovedisplayskip
+   \advance\leftskip\mathindent
+   \hscodestyle
+   \let\\=\@normalcr
+   \(\parray}%
+  {\endparray\)%
+   \hsnewpar\belowdisplayskip
+   \ignorespacesafterend}
+
+\newcommand{\arrayhs}{\sethscode{arrayhscode}}
+
+% The mathhscode environment also makes use of polytable's parray 
+% environment. It is supposed to be used only inside math mode 
+% (I used it to typeset the type rules in my thesis).
+
+\newenvironment{mathhscode}%
+  {\parray}{\endparray}
+
+\newcommand{\mathhs}{\sethscode{mathhscode}}
+
+% texths is similar to mathhs, but works in text mode.
+
+\newenvironment{texthscode}%
+  {\(\parray}{\endparray\)}
+
+\newcommand{\texths}{\sethscode{texthscode}}
+
+% The framed environment places code in a framed box.
+
+\def\codeframewidth{\arrayrulewidth}
+\RequirePackage{calc}
+
+\newenvironment{framedhscode}%
+  {\parskip=\abovedisplayskip\par\noindent
+   \hscodestyle
+   \arrayrulewidth=\codeframewidth
+   \tabular{@{}|p{\linewidth-2\arraycolsep-2\arrayrulewidth-2pt}|@{}}%
+   \hline\framedhslinecorrect\\{-1.5ex}%
+   \let\endoflinesave=\\
+   \let\\=\@normalcr
+   \(\pboxed}%
+  {\endpboxed\)%
+   \framedhslinecorrect\endoflinesave{.5ex}\hline
+   \endtabular
+   \parskip=\belowdisplayskip\par\noindent
+   \ignorespacesafterend}
+
+\newcommand{\framedhslinecorrect}[2]%
+  {#1[#2]}
+
+\newcommand{\framedhs}{\sethscode{framedhscode}}
+
+% The inlinehscode environment is an experimental environment
+% that can be used to typeset displayed code inline.
+
+\newenvironment{inlinehscode}%
+  {\(\def\column##1##2{}%
+   \let\>\undefined\let\<\undefined\let\\\undefined
+   \newcommand\>[1][]{}\newcommand\<[1][]{}\newcommand\\[1][]{}%
+   \def\fromto##1##2##3{##3}%
+   \def\nextline{}}{\) }%
+
+\newcommand{\inlinehs}{\sethscode{inlinehscode}}
+
+% The joincode environment is a separate environment that
+% can be used to surround and thereby connect multiple code
+% blocks.
+
+\newenvironment{joincode}%
+  {\let\orighscode=\hscode
+   \let\origendhscode=\endhscode
+   \def\endhscode{\def\hscode{\endgroup\def\@currenvir{hscode}\\}\begingroup}
+   %\let\SaveRestoreHook=\empty
+   %\let\ColumnHook=\empty
+   %\let\resethooks=\empty
+   \orighscode\def\hscode{\endgroup\def\@currenvir{hscode}}}%
+  {\origendhscode
+   \global\let\hscode=\orighscode
+   \global\let\endhscode=\origendhscode}%
+
+\makeatother
+\EndFmtInput
+%
+
+\begin{document}
+\title{Learn Functional Programming with Haskell}
+\author{Oliver Krischer}
+\maketitle
+\begin{abstract}
+  Working through the classical book \citetitle{sicp96} \autocite{sicp96} using \emph{Haskell}.
+\end{abstract}
+\tableofcontents
+\listoffigures
+
+\section{Building Abstractions with Procedures}
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\mathbf{import}\;\Conid{\Conid{Criterion}.Main}\;(\Varid{defaultMain},\Varid{bench},\Varid{bgroup},\Varid{whnf}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\subsection{The Elements of Programming}
+\subsubsection{Procedures as Black-Box Abstractions}
+
+In the following example we include definitions for subroutines inside the main function \ensuremath{\Varid{sqrtHeron}}, in order to keep the user interface clean.
+We also use \emph{lexical scoping}: all references to the input value \ensuremath{\Varid{x}} inside the subroutines receive their value directly from the main argument.
+
+\begin{impl}
+Implementing a squareroot function using the aproximation algorithm found by Heron of Alexandria.
+\end{impl}
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{4}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{8}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{13}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\Varid{sqrtHeron}\mathbin{::}\Conid{Double}\to \Conid{Double}{}\<[E]%
+\\
+\>[B]{}\Varid{sqrtHeron}\;\Varid{x}\mathrel{=}\Varid{iter}\;\mathrm{1}{}\<[E]%
+\\
+\>[B]{}\hsindent{4}{}\<[4]%
+\>[4]{}\mathbf{where}{}\<[E]%
+\\
+\>[4]{}\hsindent{4}{}\<[8]%
+\>[8]{}\Varid{satisfies}\;\Varid{guess}\mathrel{=}\Varid{abs}\;(\Varid{guess}\mathbin{\uparrow}\mathrm{2}\mathbin{-}\Varid{x})\mathbin{<}\mathrm{0.001}{}\<[E]%
+\\
+\>[4]{}\hsindent{4}{}\<[8]%
+\>[8]{}\Varid{improve}\;\Varid{guess}\mathrel{=}(\Varid{guess}\mathbin{+}(\Varid{x}\mathbin{/}\Varid{guess}))\mathbin{/}\mathrm{2}{}\<[E]%
+\\
+\>[4]{}\hsindent{4}{}\<[8]%
+\>[8]{}\Varid{iter}\;\Varid{guess}\mathrel{=}{}\<[E]%
+\\
+\>[8]{}\hsindent{5}{}\<[13]%
+\>[13]{}\mathbf{if}\;\Varid{satisfies}\;\Varid{guess}\;\mathbf{then}\;\Varid{guess}{}\<[E]%
+\\
+\>[8]{}\hsindent{5}{}\<[13]%
+\>[13]{}\mathbf{else}\;\Varid{iter}\mathbin{\$}\Varid{improve}\;\Varid{guess}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\subsection{Procedures and the Processes they Generate}
+\subsubsection{Linear Recursion and Iteration}
+
+The \emph{factorial function} is defined by the following \emph{recurrence relation}:
+\begin{align*}
+    1! &= 1 \\ n! &= n \cdot (n-1)!
+\end{align*}
+
+\begin{impl}
+A recursive definition of factorial, resulting in a recursive process.
+\end{impl}
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\Varid{facRec}\mathbin{::}\Conid{Integer}\to \Conid{Integer}{}\<[E]%
+\\
+\>[B]{}\Varid{facRec}\;\Varid{n}\mathrel{=}\mathbf{case}\;\Varid{n}\;\mathbf{of}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\mathrm{1}\to \mathrm{1}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\Varid{n}\to \Varid{n}\mathbin{*}\Varid{facRec}\;(\Varid{n}\mathbin{-}\mathrm{1}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\begin{impl}
+In order to achieve an iterative process, we use the concept of accumulation for the following definition. For that, we `store' the running product as a parameter of the iteration function.
+\end{impl}
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{7}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\Varid{facIter}\mathbin{::}\Conid{Integer}\to \Conid{Integer}{}\<[E]%
+\\
+\>[B]{}\Varid{facIter}\mathrel{=}\Varid{iter}\;\mathrm{1}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\mathbf{where}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\Varid{iter}\;\Varid{p}\;\Varid{n}\mathrel{=}\mathbf{case}\;\Varid{n}\;\mathbf{of}{}\<[E]%
+\\
+\>[5]{}\hsindent{2}{}\<[7]%
+\>[7]{}\mathrm{1}\to \Varid{p}{}\<[E]%
+\\
+\>[5]{}\hsindent{2}{}\<[7]%
+\>[7]{}\Varid{n}\to \Varid{iter}\;(\Varid{p}\mathbin{*}\Varid{n})\;(\Varid{n}\mathbin{-}\mathrm{1}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+Observe, that we have a \emph{recursive function definition} in \textbf{both cases}, as this is the standard way of \emph{looping} in a pure functional programming language.
+But the resulting \emph{computing process} differs in each case:
+\begin{description}
+\item[recursive:]
+The program needs to keep track of the operations to be performed later on. Hence it has to store every frame of execution within the programs \emph{call stack}, which will grow and shrink during execution. This will lead to a space complexity of $\mathcal{O}(n)$ for this linear process.
+\item[iterative:]
+The program keeps track of the process with a fixed number of \emph{values} (in our case \ensuremath{\Varid{p}} for the running product and \ensuremath{\Varid{n}} for decreasing the input value), which we repeatedly recalculate. The stack size keeps constant, resulting in a space complexity of $\mathcal{O}(1)$.
+\end{description}
+Another way of understanding this, is to look at the actual recursive call of the function:
+if there are no additional calculations to be performed (i.e. the resulting value is immediately returned), the call will lead to an iterative process, provided the compiler is able to recognize and optimize this kind of \emph{tail recursive} calls.
+
+\subsubsection{Tree Recursion}
+
+Let's have a look at another standard example for recurrence relations, the \emph{Fibonacci numbers}:
+\begin{align*}
+    Fib_0 &= 0 \\ Fib_1 &= 1 \\ Fib_n &= Fib_{n-1} + Fib_{n-2}
+\end{align*}
+
+\begin{impl}
+Recursive definition of Fibonacci numbers.
+\end{impl}
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\Varid{fibRec}\mathbin{::}\Conid{Integer}\to \Conid{Integer}{}\<[E]%
+\\
+\>[B]{}\Varid{fibRec}\;\Varid{n}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\mid \Varid{n}\mathbin{<}\mathrm{2}\mathrel{=}\Varid{n}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\mid \Varid{otherwise}\mathrel{=}\Varid{fibRec}\;(\Varid{n}\mathbin{-}\mathrm{1})\mathbin{+}\Varid{fibRec}\;(\Varid{n}\mathbin{-}\mathrm{2}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+With that recursion expression we are calling the function twice for every $n>1$, which leads to an exponential growth of calculation steps.
+The resulting process looks like a tree, in which the branches split into two at each level.
+In general, the number of steps required by a \emph{tree-recursive} process will be proportional to the number of nodes in the tree, while the space required will be proportional to the maximum depth of the tree.
+
+\begin{impl}
+Iterative definition of Fibonacci numbers, using accumulation for the current sum.
+\end{impl}
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{7}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\Varid{fibIter}\mathbin{::}\Conid{Integer}\to \Conid{Integer}{}\<[E]%
+\\
+\>[B]{}\Varid{fibIter}\mathrel{=}\Varid{iter}\;\mathrm{0}\;\mathrm{1}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}\mathbf{where}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\Varid{iter}\;\Varid{a}\;\Varid{b}\;\Varid{n}\mathrel{=}\mathbf{case}\;\Varid{n}\;\mathbf{of}{}\<[E]%
+\\
+\>[5]{}\hsindent{2}{}\<[7]%
+\>[7]{}\mathrm{1}\to \Varid{b}{}\<[E]%
+\\
+\>[5]{}\hsindent{2}{}\<[7]%
+\>[7]{}\Varid{n}\to \Varid{iter}\;\Varid{b}\;(\Varid{a}\mathbin{+}\Varid{b})\;(\Varid{n}\mathbin{-}\mathrm{1}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+Benchmarking both implementations for $n=20$, we acknowledge that the iterative function is about 1,000 times faster than the rcursive one (see figure \ref{fig:fibonacci}).
+
+\begin{figure}
+  \caption{Benchmarking Fibonacci number generation}
+  \centering
+    \includegraphics[width=0.9\textwidth]{../img/fibonacci.png} \label{fig:fibonacci}
+\end{figure}
+
+\subsubsection{Orders of Growth}
+
+\subsubsection{Exponentiation}
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{23}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{38}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\Varid{main}\mathbin{::}\Conid{IO}\;(){}\<[E]%
+\\
+\>[B]{}\Varid{main}\mathrel{=}\Varid{defaultMain}{}\<[E]%
+\\
+\>[B]{}\hsindent{3}{}\<[3]%
+\>[3]{}[\mskip1.5mu \Varid{bgroup}\;\text{\ttfamily \char34 fibonacci\char34}\;{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}[\mskip1.5mu \Varid{bench}\;\text{\ttfamily \char34 fibRec\char34}{}\<[23]%
+\>[23]{}\mathbin{\$}\Varid{whnf}\;\Varid{fibRec}\;{}\<[38]%
+\>[38]{}\mathrm{20}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{},\Varid{bench}\;\text{\ttfamily \char34 fibIter\char34}\mathbin{\$}\Varid{whnf}\;\Varid{fibIter}\;\mathrm{20}\mskip1.5mu]\mskip1.5mu]{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\printbibliography
+\end{document}
