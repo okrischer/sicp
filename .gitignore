@@ -1,4 +1,5 @@
 dist-newstyle/
+_minted-Procedures/
 *.aux
 *.bbl
 *.bcf
