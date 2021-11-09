@@ -2,8 +2,9 @@
 \usepackage{mathtools}
 \usepackage{graphicx}
 \usepackage{amssymb}
+\usepackage[section]{minted}
+\usemintedstyle[haskell]{lovelace}
 \usepackage{amsthm}
-\usepackage{minted}
 \newtheorem{defn}{Definition}[section]
 \newtheorem{prop}[defn]{Proposition}
 \newtheorem{lemma}[defn]{Lemma}
@@ -16,6 +17,8 @@
 \numberwithin{equation}{section}
 
 \begin{document}
+\definecolor{bg}{rgb}{0.95,0.95,0.95}
+\newminted{haskell}{bgcolor=bg, gobble=2, mathescape}
 \title{Learn Functional Programming with Haskell}
 \author{Oliver Krischer}
 \maketitle
@@ -26,12 +29,15 @@
 \listoffigures
 
 \section{Building Abstractions with Procedures}
-\begin{minted}{haskell}
-import Criterion.Main ( defaultMain, bench, bgroup, whnf )
-import Control.Monad ( replicateM_ )
-import Control.Monad.ST ( runST, ST )
-import Data.STRef ( newSTRef, readSTRef, writeSTRef )
-\end{minted}
+
+\begin{haskellcode}
+
+> module Procedures where
+> import Control.Monad ( replicateM_ )
+> import Control.Monad.ST ( runST, ST )
+> import Data.STRef ( newSTRef, readSTRef, writeSTRef )
+
+\end{haskellcode}
 
 \subsection{The Elements of Programming}
 \subsubsection{Procedures as Black-Box Abstractions}
@@ -43,16 +49,18 @@ We also use \emph{lexical scoping}: all references to the input value \texttt{x}
 Implementing a squareroot function using the aproximation algorithm found by Heron of Alexandria.
 \end{impl}
 
-\begin{minted}{haskell}
-sqrtHeron :: Double -> Double 
-sqrtHeron x = iter 1
-  where 
-    satisfies guess = abs (guess^2 - x) < 0.001
-    improve guess = (guess + (x / guess)) / 2
-    iter guess =
-      if satisfies guess then guess
-      else iter $ improve guess
-\end{minted}
+\begin{haskellcode}
+
+> sqrtHeron :: Double -> Double
+> sqrtHeron x = iter 1
+>   where 
+>     satisfies guess = abs (guess^2 - x) < 0.001
+>     improve guess = (guess + (x / guess)) / 2
+>     iter guess =
+>       if satisfies guess then guess
+>       else iter $ improve guess
+
+\end{haskellcode}
 
 \subsection{Procedures and the Processes they Generate}
 \subsubsection{Linear Recursion and Iteration}
@@ -66,25 +74,29 @@ The \emph{factorial function} is defined by the following \emph{recurrence relat
 A recursive definition of factorial, resulting in a recursive process.
 \end{impl}
 
-\begin{minted}{haskell}
-facRec :: Integer -> Integer
-facRec n = case n of
-  1 -> 1
-  n -> n * facRec (n-1)
-\end{minted}
+\begin{haskellcode}
+
+> facRec :: Integer -> Integer
+> facRec n = case n of
+>   1 -> 1
+>   n -> n * facRec (n-1)
+
+\end{haskellcode}
 
 \begin{impl}
 In order to achieve an iterative process, we use the concept of accumulation for the following definition. For that, we `store' the running product as a parameter of the iteration function.
 \end{impl}
 
-\begin{minted}{haskell}
-facIter :: Integer -> Integer
-facIter = iter 1
-  where
-    iter p n = case n of
-      1 -> p
-      n -> iter (p*n) (n-1)
-\end{minted}
+\begin{haskellcode}
+
+> facIter :: Integer -> Integer
+> facIter = iter 1
+>   where
+>     iter p n = case n of
+>       1 -> p
+>       n -> iter (p*n) (n-1)
+
+\end{haskellcode}
 
 Observe, that we have a \emph{recursive function definition} in \textbf{both cases}, as this is the standard way of \emph{looping} in a pure functional programming language.
 But the resulting \emph{computing process} differs in each case:
@@ -108,12 +120,14 @@ Let's have a look at another standard example for recurrence relations, the \emp
 Recursive definition of Fibonacci numbers.
 \end{impl}
 
-\begin{minted}{haskell}
-fibRec :: Integer -> Integer
-fibRec n
-  | n < 2 = n
-  | otherwise = fibRec (n-1) + fibRec (n-2)
-\end{minted}
+\begin{haskellcode}
+
+> fibRec :: Integer -> Integer
+> fibRec n
+>   | n < 2 = n
+>   | otherwise = fibRec (n-1) + fibRec (n-2)
+
+\end{haskellcode}
 
 With that recursion expression we are calling the function twice for every $n>1$, which leads to an exponential growth of calculation steps.
 The resulting process looks like a tree, in which the branches split into two at each level.
@@ -123,14 +137,16 @@ In general, the number of steps required by a \emph{tree-recursive} process will
 Iterative definition of Fibonacci numbers, using accumulation for the current sum.
 \end{impl}
 
-\begin{minted}{haskell}
-fibIter :: Integer -> Integer
-fibIter = iter 0 1
-  where
-    iter a b n = case n of
-      0 -> a
-      n -> iter b (a+b) (n-1)
-\end{minted}
+\begin{haskellcode}
+
+> fibIter :: Integer -> Integer
+> fibIter = iter 0 1
+>   where
+>     iter a b n = case n of
+>       0 -> a
+>       n -> iter b (a+b) (n-1)
+
+\end{haskellcode}
 
 \includegraphics[width=0.9\textwidth]{../img/fib_rec.png}
 
@@ -141,7 +157,7 @@ Going one step further, we can implement fibonacci numbers in an imperative styl
 \end{impl}
 
 An imperative version of \texttt{fibonacci} in C would look like this:
-\begin{minted}{c}
+\begin{minted}[bgcolor=bg]{c}
 int fibonacci(int n) {
    int a = 0;
    int b = 1;
@@ -155,27 +171,34 @@ int fibonacci(int n) {
 }
 \end{minted}
 
-We can translate the C code almost directly into Haskell\footnote{this implementation is adopted from chapter 10.4 of: \cite{tfwh15}}, thereby getting rid of the temporary variable t:
+We can translate the C code almost directly into Haskell\footnote{this implementation is adopted from chapter 10 of \parencite{tfwh15}}, thereby getting rid of the temporary variable \texttt{t}:
 
-\begin{minted}{haskell}
-fibST :: Int -> ST s Integer
-fibST n = do
-  a <- newSTRef 0
-  b <- newSTRef 1
-  replicateM_ n (do 
-    x <- readSTRef a
-    y <- readSTRef b
-    writeSTRef a y
-    writeSTRef b $! (x+y))
-  readSTRef a
-\end{minted}
+\begin{haskellcode*}{linenos=true}
 
+> fibST :: Int -> ST s Integer
+> -- returns a monad of type Control.Monad.ST
+
+> fibST n = do
+>   a <- newSTRef 0
+>   b <- newSTRef 1
+>   replicateM_ n (do 
+>     x <- readSTRef a
+>     y <- readSTRef b
+>     writeSTRef a y
+>     writeSTRef b $! (x+y))
+>   readSTRef a
+
+\end{haskellcode*}
+
+Here we have replaced the {\mintinline{c}{for}}-loop from the C program with a call to {\mintinline{haskell}{replicateM_}} from {\mintinline{haskell}{Control.Monad}} (lines 7 to 11).
 We can now call that imperative code from a regular function:
 
-\begin{minted}{haskell}
-fibImper :: Int -> Integer 
-fibImper n = runST (fibST n)
-\end{minted}
+\begin{haskellcode}
+
+> fibImper :: Int -> Integer
+> fibImper n = runST (fibST n)
+
+\end{haskellcode}
 
 \includegraphics[width=0.9\textwidth]{../img/fib_iter.png}
 
@@ -184,14 +207,6 @@ This version of \texttt{fibonacci} runs in constant space. In the result, for $n
 \subsubsection{Orders of Growth}
 
 \subsubsection{Exponentiation}
-
-\begin{minted}{haskell}
-main :: IO ()
-main = defaultMain 
-  [bgroup "fibonacci"
-    [ bench "fibIter"  $ whnf fibIter 100
-    , bench "fibImper" $ whnf fibImper 100]]
-\end{minted}
 
 \printbibliography
 \end{document}

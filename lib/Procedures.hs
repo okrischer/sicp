@@ -1,4 +1,5 @@
-import Criterion.Main ( defaultMain, bench, bgroup, whnf )
+module Procedures where
+
 import Control.Monad ( replicateM_ )
 import Control.Monad.ST ( runST, ST )
 import Data.STRef ( newSTRef, readSTRef, writeSTRef )
@@ -49,9 +50,3 @@ fibST n = do
 
 fibImper :: Int -> Integer 
 fibImper n = runST (fibST n)
-
-main :: IO ()
-main = defaultMain 
-  [bgroup "fibonacci"
-    [ bench "fibIter"  $ whnf fibIter 100
-    , bench "fibImper" $ whnf fibImper 100]]
